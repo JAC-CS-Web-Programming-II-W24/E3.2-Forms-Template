@@ -68,7 +68,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
         res.statusCode = 404;
         // res.end(JSON.stringify({ message: "Route not found" }, null, 2));
         res.end(
-            renderTemplate("src/views/ErrorView.hbs", {
+            await renderTemplate("src/views/ErrorView.hbs", {
                 message: "Route not found",
             }),
         );
