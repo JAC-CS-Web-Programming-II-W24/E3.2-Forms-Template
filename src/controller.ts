@@ -8,15 +8,107 @@ export const getHome = async (req: IncomingMessage, res: ServerResponse) => {
     res.end(await renderTemplate("src/views/HomeView.hbs"));
 };
 
-// TODO: Copy-paste the getOnePokemon and getAllPokemon functions from the previous exercise.
+export const getNewForm = async (req: IncomingMessage, res: ServerResponse) => {
+    res.statusCode = 200;
+    res.setHeader("Content-Type", "text/html");
+    res.end(await renderTemplate("src/views/NewFormView.hbs"));
+};
+
+export const getOnePokemon = async (
+    req: IncomingMessage,
+    res: ServerResponse,
+) => {
+    const id = Number(req.url?.split("/")[2]);
+    const foundPokemon = database.find((pokemon) => pokemon.id === id);
+
+    if (!foundPokemon) {
+        res.statusCode = 404;
+        res.end(
+            await renderTemplate("src/views/ErrorView.hbs", {
+                message: "Pokemon not found!",
+            }),
+        );
+        return;
+    }
+
+    res.statusCode = 200;
+    res.setHeader("Content-Type", "text/html");
+    res.end(
+        await renderTemplate("src/views/ShowView.hbs", {
+            pokemon: foundPokemon,
+        }),
+    );
+};
+
+export const getAllPokemon = async (
+    req: IncomingMessage,
+    res: ServerResponse,
+) => {
+    const url = new URL(req.url!, `http://${req.headers.host}`); // Use URL parsing
+    const queryParams = url.searchParams;
+    const typeFilter = queryParams.get("type");
+    const sortBy = queryParams.get("sortBy");
+    let pokemon: Pokemon[] = [];
+
+    // Apply basic filtering if we have a `typeFilter`:
+    if (typeFilter) {
+        pokemon = database.filter((pokemon) => pokemon.type === typeFilter);
+    } else {
+        pokemon = database;
+    }
+
+    if (sortBy === "name") {
+        pokemon = [...pokemon].sort((a, b) => a.name.localeCompare(b.name));
+    }
+
+    res.statusCode = 200;
+    res.setHeader("Content-Type", "text/html");
+    res.end(
+        await renderTemplate("src/views/ListView.hbs", {
+            pokemon: pokemon,
+        }),
+    );
+};
 
 export const createPokemon = async (
     req: IncomingMessage,
     res: ServerResponse,
 ) => {
     const body = await parseBody(req);
+    let newPokemon;
 
-    res.end(body);
+    /**
+     * In this exercise we're not going to handle JSON requests,
+     * but I want to show you how you could potentially handle them.
+     */
+    if (req.headers["content-type"]?.includes("x-www-form-urlencoded")) {
+        // application/x-www-form-urlencoded => name=Pikachu&type=Electric
+        newPokemon = Object.fromEntries(new URLSearchParams(body).entries());
+    } else {
+        // application/json => {"name":"Pikachu","type":"Electric"}
+        newPokemon = JSON.parse(body);
+    }
+
+    newPokemon.id = database.length + 1; // ID "auto-increment".
+    database.push(newPokemon);
+
+    // res.statusCode = 201;
+    // res.setHeader("Content-Type", "text/html");
+    // res.end(
+    //     await renderTemplate("src/views/ListView.hbs", {
+    //         pokemon: database,
+    //     }),
+    // );
+
+    if (req.headers["user-agent"]?.includes("Mozilla")) {
+        res.statusCode = 303;
+        res.setHeader("Location", "/pokemon");
+        res.end();
+    } else {
+        res.statusCode = 201;
+        res.setHeader("Content-Type", "application/json");
+        res.end(JSON.stringify(newPokemon));
+    }
 };
 
 const parseBody = async (req: IncomingMessage) => {

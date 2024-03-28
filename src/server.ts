@@ -40,10 +40,6 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
 
     let url;
 
-	/**
-	 * The `req.url` property contains the URL of the request.
-	 * We can use this to determine which route the user is trying to access.
-	 */
     switch (req.url!) {
         case "/":
             url = "/";
@@ -68,7 +64,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
         res.statusCode = 404;
         // res.end(JSON.stringify({ message: "Route not found" }, null, 2));
         res.end(
-            await renderTemplate("src/views/ErrorView.hbs", {
+            renderTemplate("src/views/ErrorView.hbs", {
                 message: "Route not found",
             }),
         );
